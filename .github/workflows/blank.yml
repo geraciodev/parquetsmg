@@ -1,0 +1,44 @@
+name: Build Windows (.exe / MSI)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Windows package (MSI)
+        run: ./gradlew packageMsi
+
+      # Opcional: también generar un .exe portable
+      # run: ./gradlew packageExe   # si tu versión de Compose lo soporta
+
+      - name: Upload MSI installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+
+      - name: Upload portable EXE (if generated)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable
+          path: build/compose/binaries/main/app/*.exe
+          if-no-files-found: warn
