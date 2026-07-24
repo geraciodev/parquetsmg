@@ -19,27 +19,23 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+          cache: 'gradle'
 
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+      - name: Build Windows package (MSI and EXE)
+        # En Windows no es necesario chmod +x gradlew. 
+        # Usamos :desktopApp: para ejecutar las tareas del módulo específico.
+        run: ./gradlew :desktopApp:packageMsi :desktopApp:packageExe
 
-      # - name: Build Windows package (MSI)
-      #   run: ./gradlew packageMsi
-
-      # Opcional: también generar un .exe portable
-      - name: Build Windows package (EXE)
-        run: ./gradlew packageExe   # si tu versión de Compose lo soporta
-
-      # - name: Upload MSI installer
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: windows-installer
-      #     path: build/compose/binaries/main/msi/*.msi
-      #     if-no-files-found: error
-
-      - name: Upload portable EXE 
+      - name: Upload MSI installer
         uses: actions/upload-artifact@v4
         with:
-          name: windows-portable
-          path: build/compose/binaries/main/app/*.exe
+          name: windows-msi-installer
+          path: desktopApp/build/compose/binaries/main/msi/*.msi
+          if-no-files-found: error
+
+      - name: Upload EXE installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe-installer
+          path: desktopApp/build/compose/binaries/main/exe/*.exe
           if-no-files-found: warn
