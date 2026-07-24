@@ -20,8 +20,11 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "com.geraciodev.parquetsmg"
+            packageName = "ParquetsMG"
             packageVersion = "1.0.0"
+            description = "Parquet File Viewer"
+
+            vendor = "geraciodev"
 
             linux {
                 shortcut = true
