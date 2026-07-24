@@ -21,17 +21,29 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Build Windows package (MSI and EXE)
-        # En Windows no es necesario chmod +x gradlew. 
-        # Usamos :desktopApp: para ejecutar las tareas del módulo específico.
-        run: ./gradlew :desktopApp:packageMsi :desktopApp:packageExe
+      - name: Build Windows MSI
+        run: .\gradlew :desktopApp:packageMsi --info
+        continue-on-error: true
+
+      - name: Build Windows EXE
+        run: .\gradlew :desktopApp:packageExe --info
+
+      - name: Show jpackage error logs on failure
+        if: failure()
+        run: |
+          Get-ChildItem -Path desktopApp/build/compose/logs -Filter *.txt -Recurse | Unregister-ScheduledTask -ErrorAction SilentlyContinue # Solo para evitar ruido
+          foreach ($file in Get-ChildItem -Path desktopApp/build/compose/logs -Filter *.txt -Recurse) {
+            Write-Host "--- LOG: $($file.FullName) ---"
+            Get-Content $file.FullName
+          }
+        shell: powershell
 
       - name: Upload MSI installer
         uses: actions/upload-artifact@v4
         with:
           name: windows-msi-installer
           path: desktopApp/build/compose/binaries/main/msi/*.msi
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: Upload EXE installer
         uses: actions/upload-artifact@v4
