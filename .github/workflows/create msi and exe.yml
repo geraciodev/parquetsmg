@@ -3,12 +3,15 @@ name: Build Windows (.exe / MSI)
 on:
   push:
     branches: [ main, master ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main, master ]
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -30,24 +33,40 @@ jobs:
 
       - name: Show jpackage error logs on failure
         if: failure()
-        run: |
-          Get-ChildItem -Path desktopApp/build/compose/logs -Filter *.txt -Recurse | Unregister-ScheduledTask -ErrorAction SilentlyContinue # Solo para evitar ruido
-          foreach ($file in Get-ChildItem -Path desktopApp/build/compose/logs -Filter *.txt -Recurse) {
-            Write-Host "--- LOG: $($file.FullName) ---"
-            Get-Content $file.FullName
-          }
         shell: powershell
+        run: |
+          $logDir = "desktopApp/build/compose/logs"
+          if (Test-Path $logDir) {
+            Get-ChildItem -Path $logDir -Filter *.txt -Recurse | ForEach-Object {
+              Write-Host "--- LOG: $($_.FullName) ---"
+              Get-Content $_.FullName
+            }
+          } else {
+            Write-Host "No se encontraron logs en $logDir"
+          }
 
-      - name: Upload MSI installer
+      - name: Upload MSI installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-msi-installer
           path: desktopApp/build/compose/binaries/main/msi/*.msi
           if-no-files-found: warn
 
-      - name: Upload EXE installer
+      - name: Upload EXE installer artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe-installer
           path: desktopApp/build/compose/binaries/main/exe/*.exe
           if-no-files-found: warn
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            desktopApp/build/compose/binaries/main/msi/*.msi
+            desktopApp/build/compose/binaries/main/exe/*.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
