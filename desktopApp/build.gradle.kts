@@ -41,9 +41,12 @@ compose.desktop {
                 dockName = "ParquetsMG"
             }
 
+            modules("java.sql", "java.naming", "jdk.charsets", "java.desktop", "java.logging", "java.xml")
+
             val parquetProps = project.rootProject.file("parquet.properties")
             tasks.withType<AbstractJPackageTask>().configureEach {
                 if (parquetProps.exists()) {
+                    // Usamos doFirst para asegurar que los argumentos se añadan correctamente antes de la ejecución
                     freeArgs.add("--file-associations")
                     freeArgs.add(parquetProps.absolutePath)
                 }

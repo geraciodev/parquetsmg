@@ -24,48 +24,42 @@ jobs:
           distribution: 'temurin'
           cache: 'gradle'
 
-      - name: Build Windows MSI
-        run: .\gradlew :desktopApp:packageMsi --info
+      - name: Build Windows Packages
+        # Usamos --continue para que si falla un formato (ej. MSI), intente generar el otro (EXE)
+        run: .\gradlew :desktopApp:packageMsi :desktopApp:packageExe --info --continue
         continue-on-error: true
 
-      - name: Build Windows EXE
-        run: .\gradlew :desktopApp:packageExe --info
-
       - name: Show jpackage error logs on failure
-        if: failure()
+        if: always()
         shell: powershell
         run: |
           $logDir = "desktopApp/build/compose/logs"
           if (Test-Path $logDir) {
             Get-ChildItem -Path $logDir -Filter *.txt -Recurse | ForEach-Object {
-              Write-Host "--- LOG: $($_.FullName) ---"
+              Write-Host "--- LOG DE ERROR: $($_.FullName) ---"
               Get-Content $_.FullName
             }
-          } else {
-            Write-Host "No se encontraron logs en $logDir"
           }
 
-      - name: Upload MSI installer artifact
+      - name: Upload Artifacts to Actions
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: windows-msi-installer
-          path: desktopApp/build/compose/binaries/main/msi/*.msi
-          if-no-files-found: warn
-
-      - name: Upload EXE installer artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows-exe-installer
-          path: desktopApp/build/compose/binaries/main/exe/*.exe
+          name: windows-binaries
+          path: |
+            desktopApp/build/compose/binaries/main/msi/*.msi
+            desktopApp/build/compose/binaries/main/exe/*.exe
           if-no-files-found: warn
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
+        # Se ejecuta solo si es un tag, incluso si el build dio avisos
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
             desktopApp/build/compose/binaries/main/msi/*.msi
             desktopApp/build/compose/binaries/main/exe/*.exe
+          fail_on_unmatched_files: false
           draft: false
           prerelease: false
         env:
