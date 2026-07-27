@@ -299,113 +299,137 @@ fun ParquetViewer(initialFile: String? = null) {
                     Text("No se encontraron resultados")
                 }
             } else {
+                val horizontalScrollState = rememberScrollState()
+                val verticalLazyListState = rememberLazyListState()
+
+                // Estilo personalizado para que los scrollbars sean más visibles
+                val scrollbarStyle = defaultScrollbarStyle().copy(
+                    unhoverColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
+                    hoverColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    thickness = 10.dp,
+                    shape = MaterialTheme.shapes.small
+                )
+
                 Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                    val horizontalScrollState = rememberScrollState()
-                    val verticalLazyListState = rememberLazyListState()
-                    
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                            Column(modifier = Modifier.horizontalScroll(horizontalScrollState)) {
-                                Row(modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer)) {
-                                    visibleColumns.forEach { column ->
-                                        Row(
-                                            modifier = Modifier.width(180.dp).padding(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                    // Contenedor principal con scroll horizontal
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 12.dp) // Espacio para la barra horizontal
+                            .horizontalScroll(horizontalScrollState)
+                    ) {
+                        Column {
+                            // Encabezado
+                            Row(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                            ) {
+                                visibleColumns.forEach { column ->
+                                    Row(
+                                        modifier = Modifier.width(180.dp).padding(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = column,
+                                            modifier = Modifier.weight(1f),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            maxLines = 1
+                                        )
+
+                                        IconButton(
+                                            onClick = { activeStatsColumn = column },
+                                            modifier = Modifier.size(24.dp)
+                                        ) {
+                                            Text("Σ", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                                        }
+
+                                        IconButton(
+                                            onClick = { activeFilterMenuColumn = column },
+                                            modifier = Modifier.size(24.dp)
                                         ) {
                                             Text(
-                                                text = column,
-                                                modifier = Modifier.weight(1f),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                                maxLines = 1
+                                                if (columnFilters.containsKey(column)) "▼!" else "▼",
+                                                fontSize = 10.sp,
+                                                color = if (columnFilters.containsKey(column)) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimaryContainer
                                             )
+                                        }
 
-                                            IconButton(
-                                                onClick = { activeStatsColumn = column },
-                                                modifier = Modifier.size(24.dp)
-                                            ) {
-                                                Text("Σ", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                                            }
-                                            
-                                            IconButton(
-                                                onClick = { activeFilterMenuColumn = column },
-                                                modifier = Modifier.size(24.dp)
-                                            ) {
-                                                Text(
-                                                    if (columnFilters.containsKey(column)) "▼!" else "▼",
-                                                    fontSize = 10.sp,
-                                                    color = if (columnFilters.containsKey(column)) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onPrimaryContainer
-                                                )
-                                            }
-                                            
-                                            if (activeFilterMenuColumn == column) {
-                                                ColumnFilterDialog(
-                                                    columnName = column,
-                                                    filePath = filePath!!,
-                                                    parquetService = parquetService,
-                                                    currentFilters = columnFilters[column] ?: emptySet(),
-                                                    onDismiss = { activeFilterMenuColumn = null },
-                                                    onApply = { newFilters ->
-                                                        val updatedFilters = columnFilters.toMutableMap()
-                                                        if (newFilters.isEmpty()) {
-                                                            updatedFilters.remove(column)
-                                                        } else {
-                                                            updatedFilters[column] = newFilters
-                                                        }
-                                                        columnFilters = updatedFilters
-                                                        activeFilterMenuColumn = null
-                                                        loadPage(filePath!!, 0, searchQuery, updatedFilters)
+                                        if (activeFilterMenuColumn == column) {
+                                            ColumnFilterDialog(
+                                                columnName = column,
+                                                filePath = filePath!!,
+                                                parquetService = parquetService,
+                                                currentFilters = columnFilters[column] ?: emptySet(),
+                                                onDismiss = { activeFilterMenuColumn = null },
+                                                onApply = { newFilters ->
+                                                    val updatedFilters = columnFilters.toMutableMap()
+                                                    if (newFilters.isEmpty()) {
+                                                        updatedFilters.remove(column)
+                                                    } else {
+                                                        updatedFilters[column] = newFilters
                                                     }
-                                                )
-                                            }
+                                                    columnFilters = updatedFilters
+                                                    activeFilterMenuColumn = null
+                                                    loadPage(filePath!!, 0, searchQuery, updatedFilters)
+                                                }
+                                            )
+                                        }
 
-                                            if (activeStatsColumn == column) {
-                                                ColumnStatsDialog(
-                                                    columnName = column,
-                                                    filePath = filePath!!,
-                                                    parquetService = parquetService,
-                                                    searchQuery = searchQuery,
-                                                    columnFilters = columnFilters,
-                                                    onDismiss = { activeStatsColumn = null }
-                                                )
-                                            }
+                                        if (activeStatsColumn == column) {
+                                            ColumnStatsDialog(
+                                                columnName = column,
+                                                filePath = filePath!!,
+                                                parquetService = parquetService,
+                                                searchQuery = searchQuery,
+                                                columnFilters = columnFilters,
+                                                onDismiss = { activeStatsColumn = null }
+                                            )
                                         }
                                     }
                                 }
-                                
-                                Box(modifier = Modifier.fillMaxHeight()) {
-                                    LazyColumn(
-                                        modifier = Modifier.fillMaxHeight().border(0.5.dp, Color.Gray),
-                                        state = verticalLazyListState
-                                    ) {
-                                        items(rows) { row ->
-                                            Row(modifier = Modifier.border(0.2.dp, Color.Gray)) {
-                                                visibleColumns.forEach { column ->
-                                                    Text(
-                                                        text = row[column]?.toString() ?: "null",
-                                                        modifier = Modifier.width(180.dp).padding(8.dp),
-                                                        fontSize = 11.sp,
-                                                        maxLines = 1
-                                                    )
-                                                }
-                                            }
+                            }
+
+                            // Cuerpo de la tabla (Filas)
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .border(0.5.dp, Color.Gray),
+                                state = verticalLazyListState
+                            ) {
+                                items(rows) { row ->
+                                    Row(modifier = Modifier.border(0.2.dp, Color.Gray)) {
+                                        visibleColumns.forEach { column ->
+                                            Text(
+                                                text = row[column]?.toString() ?: "null",
+                                                modifier = Modifier.width(180.dp).padding(8.dp),
+                                                fontSize = 11.sp,
+                                                maxLines = 1
+                                            )
                                         }
                                     }
-                                    
-                                    VerticalScrollbar(
-                                        modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
-                                        adapter = rememberScrollbarAdapter(verticalLazyListState)
-                                    )
                                 }
                             }
                         }
-                        
-                        HorizontalScrollbar(
-                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                            adapter = rememberScrollbarAdapter(horizontalScrollState)
-                        )
                     }
+
+                    // Barras de scroll con el nuevo estilo
+                    VerticalScrollbar(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight(),
+                        adapter = rememberScrollbarAdapter(verticalLazyListState),
+                        style = scrollbarStyle
+                    )
+
+                    HorizontalScrollbar(
+                        modifier = Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth(),
+                        adapter = rememberScrollbarAdapter(horizontalScrollState),
+                        style = scrollbarStyle
+                    )
                 }
             }
 
@@ -477,7 +501,7 @@ fun ColumnFilterDialog(
             shape = MaterialTheme.shapes.medium,
             tonalElevation = 6.dp,
             color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.fillMaxWidth(0.35f).fillMaxHeight(0.7f)
+            modifier = Modifier.fillMaxWidth(0.7f).fillMaxHeight(0.7f)
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
                 Text(
